@@ -148,7 +148,7 @@ class StableDiffusionPipeline:
     def is_backend_tensorrt(self):
         return self.engine_type == EngineType.TRT
 
-    def set_scheduler(self, scheduler:str):
+    def set_scheduler(self, scheduler: str):
         if scheduler == self.current_scheduler:
             return
 

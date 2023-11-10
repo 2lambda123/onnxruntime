@@ -46,11 +46,17 @@ def load_pipelines(args, batch_size):
     if batch_size > max_batch_size:
         raise ValueError(f"Batch size {batch_size} is larger than allowed {max_batch_size}.")
 
+    # Reduce the image size range to trade-off flexibility and performance.
+    min_image_size = 832 if args.engine != "ORT_CUDA" else 512
+    max_image_size = 1216 if args.engine != "ORT_CUDA" else 2048
+
     # No VAE decoder in base when it outputs latent instead of image.
-    base_info = PipelineInfo(args.version, use_vae=False, min_image_size=640, max_image_size=1536)
+    base_info = PipelineInfo(args.version, use_vae=False, min_image_size=min_image_size, max_image_size=max_image_size)
     base = init_pipeline(Txt2ImgXLPipeline, base_info, engine_type, args, max_batch_size, batch_size)
 
-    refiner_info = PipelineInfo(args.version, is_refiner=True, min_image_size=640, max_image_size=1536)
+    refiner_info = PipelineInfo(
+        args.version, is_refiner=True, min_image_size=min_image_size, max_image_size=max_image_size
+    )
     refiner = init_pipeline(Img2ImgXLPipeline, refiner_info, engine_type, args, max_batch_size, batch_size)
 
     if engine_type == EngineType.TRT:
