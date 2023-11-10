@@ -46,7 +46,8 @@ def load_pipelines(args, batch_size):
     if batch_size > max_batch_size:
         raise ValueError(f"Batch size {batch_size} is larger than allowed {max_batch_size}.")
 
-    # Reduce the image size range to trade-off flexibility and performance.
+    # For TensorRT,  performance of engine built with dynamic shape is very sensitive to the range of image size.
+    # Here, we reduce the range of image size for TensorRT to trade-off flexibility and performance.
     min_image_size = 832 if args.engine != "ORT_CUDA" else 512
     max_image_size = 1216 if args.engine != "ORT_CUDA" else 2048
 
