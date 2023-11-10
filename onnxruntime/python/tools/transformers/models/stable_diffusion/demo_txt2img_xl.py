@@ -183,6 +183,8 @@ def run_dynamic_shape_demo(args):
         args.width = width
         args.scheduler = scheduler
         args.denoising_steps = steps
+        base.set_scheduler(scheduler)
+        refiner.set_scheduler(scheduler)
         print(
             f"\nbatch_size={batch_size}, height={height}, width={width}, scheduler={scheduler}, steps={steps}, prompt={example_prompt}"
         )

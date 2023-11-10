@@ -102,22 +102,6 @@ class StableDiffusionPipeline:
         self.verbose = verbose
         self.nvtx_profile = nvtx_profile
 
-        # Scheduler options
-        sched_opts = {"num_train_timesteps": 1000, "beta_start": 0.00085, "beta_end": 0.012}
-        if self.version in ("2.0", "2.1"):
-            sched_opts["prediction_type"] = "v_prediction"
-        else:
-            sched_opts["prediction_type"] = "epsilon"
-
-        if scheduler == "DDIM":
-            self.scheduler = DDIMScheduler(device=self.device, **sched_opts)
-        elif scheduler == "EulerA":
-            self.scheduler = EulerAncestralDiscreteScheduler(device=self.device, **sched_opts)
-        elif scheduler == "UniPC":
-            self.scheduler = UniPCMultistepScheduler(device=self.device)
-        else:
-            raise ValueError("Scheduler should be either DDIM, EulerA or UniPC")
-
         self.stages = pipeline_info.stages()
 
         self.vae_torch_fallback = self.pipeline_info.is_xl()
@@ -128,8 +112,10 @@ class StableDiffusionPipeline:
         self.tokenizer2 = None
 
         self.generator = None
-        self.denoising_steps = None
         self.actual_steps = None
+
+        self.current_scheduler = None
+        self.set_scheduler(scheduler)
 
         # backend engine
         self.engine_type = engine_type
@@ -161,6 +147,29 @@ class StableDiffusionPipeline:
 
     def is_backend_tensorrt(self):
         return self.engine_type == EngineType.TRT
+
+    def set_scheduler(self, scheduler:str):
+        if scheduler == self.current_scheduler:
+            return
+
+        # Scheduler options
+        sched_opts = {"num_train_timesteps": 1000, "beta_start": 0.00085, "beta_end": 0.012}
+        if self.version in ("2.0", "2.1"):
+            sched_opts["prediction_type"] = "v_prediction"
+        else:
+            sched_opts["prediction_type"] = "epsilon"
+
+        if scheduler == "DDIM":
+            self.scheduler = DDIMScheduler(device=self.device, **sched_opts)
+        elif scheduler == "EulerA":
+            self.scheduler = EulerAncestralDiscreteScheduler(device=self.device, **sched_opts)
+        elif scheduler == "UniPC":
+            self.scheduler = UniPCMultistepScheduler(device=self.device)
+        else:
+            raise ValueError("Scheduler should be either DDIM, EulerA or UniPC")
+
+        self.current_scheduler = scheduler
+        self.denoising_steps = None
 
     def set_denoising_steps(self, denoising_steps: int):
         if not (self.denoising_steps == denoising_steps and isinstance(self.scheduler, DDIMScheduler)):
