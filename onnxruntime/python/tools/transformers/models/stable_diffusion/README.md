@@ -86,12 +86,19 @@ First, we need install CUDA 11.8 or 12.1, [cuDNN](https://docs.nvidia.com/deeple
 
 In the Conda environment, install PyTorch 2.1 or above, and other required packages like the following:
 ```
-pip install torch --index-url https://download.pytorch.org/whl/nightly/cu118
+pip install torch --index-url https://download.pytorch.org/whl/cu118
 pip install --upgrade polygraphy onnx-graphsurgeon --extra-index-url https://pypi.ngc.nvidia.com
 pip install -r requirements-cuda11.txt
 ```
 
-We cannot directly `pip install tensorrt` for CUDA 11. Follow https://github.com/NVIDIA/TensorRT/issues/2773 to install TensorRT for CUDA 11 in Linux. For Windows, pip install the tensorrt wheel in the downloaded TensorRT zip file instead.
+For Windows, install nvtx like the following:
+```
+conda install -c conda-forge nvtx
+```
+
+We cannot directly `pip install tensorrt` for CUDA 11. Follow https://github.com/NVIDIA/TensorRT/issues/2773 to install TensorRT for CUDA 11 in Linux.
+
+For Windows, pip install the tensorrt wheel in the downloaded TensorRT zip file instead. Like `pip install tensorrt-8.6.1.6.windows10.x86_64.cuda-11.8\tensorrt-8.6.1.6\python\tensorrt-8.6.1-cp310-none-win_amd64.whl`.
 
 #### CUDA 12.*:
 The official package of onnxruntime-gpu 1.16.* is built for CUDA 11.8. To use CUDA 12.*, you will need [build onnxruntime from source](https://onnxruntime.ai/docs/build/inferencing.html).
@@ -99,6 +106,7 @@ The official package of onnxruntime-gpu 1.16.* is built for CUDA 11.8. To use CU
 ```
 git clone --recursive https://github.com/Microsoft/onnxruntime.git
 cd onnxruntime
+pip install cmake
 pip install -r requirements-dev.txt
 ```
 Follow [example script for A100 in Ubuntu](https://github.com/microsoft/onnxruntime/blob/26a7b63716e3125bfe35fe3663ba10d2d7322628/build_release.sh)
@@ -106,7 +114,7 @@ or [example script for RTX 4090 in Windows](https://github.com/microsoft/onnxrun
 
 Then install other python packages like the following:
 ```
-pip install torch --index-url https://download.pytorch.org/whl/nightly/cu121
+pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install --upgrade polygraphy onnx-graphsurgeon --extra-index-url https://pypi.ngc.nvidia.com
 pip install -r requirements-cuda12.txt
 ```
@@ -158,6 +166,30 @@ pip install build/Linux/Release/dist/*.whl
 ```
 
 You can also follow the [official docs](https://onnxruntime.ai/docs/build/eps.html#amd-rocm) to build with docker.
+
+### Run Demo
+
+We have optimized the Stable Diffusion pipelines to accelerate text to image generation.
+
+You can review the usage of supported pipelines like the following:
+```
+python3 demo_txt2img.py --help
+python3 demo_txt2img_xl.py --help
+```
+
+For example:
+`--engine {ORT_CUDA,ORT_TRT,TRT}` can be used to choose different backend engines including CUDA or TensorRT execution provider of ONNX Runtime, or TensorRT.
+`--work-dir WORK_DIR` can be used to save models under a specified directory.
+
+#### Generate an image guided by a text prompt
+```python3 demo_txt2img.py "astronaut riding a horse on mars"```
+
+#### Generate an image with Stable Diffusion XL guided by a text prompt
+```python3 demo_txt2img_xl.py "starry night over Golden Gate Bridge by van gogh"```
+
+If you do not provide prompt, the script will generate different image sizes for a list of prompts for demonstration.
+
+It is recommended to use a machine with 64 GB or more memory to run this demo.
 
 ### Export ONNX pipeline
 This step will export stable diffusion 1.5 to ONNX model in float32 using script from diffusers.
@@ -400,7 +432,8 @@ Results are from Standard_NC4as_T4_v3 Azure virtual machine:
 
 ### Credits
 
-Some CUDA kernels (Flash Attention, GroupNorm, SplitGelu and BiasAdd etc.) were originally implemented in [TensorRT](https://github.com/nviDIA/TensorRT) by Nvidia.
+Some CUDA kernels (TensorRT Fused Attention, GroupNorm, SplitGelu and BiasAdd etc.) and demo diffusion were originally implemented in [TensorRT](https://github.com/nviDIA/TensorRT) by Nvidia.
+We use [Flash Attention v2](https://github.com/Dao-AILab/flash-attention) in Linux.
 We use Memory efficient attention from [CUTLASS](https://github.com/NVIDIA/cutlass). The kernels were developed by Meta xFormers.
 The ONNX export script and pipeline for stable diffusion was developed by Huggingface [diffusers](https://github.com/huggingface/diffusers) library.
 
@@ -408,10 +441,8 @@ Most ROCm kernel optimizations are from [composable kernel](https://github.com/R
 Some kernels are enabled by MIOpen. We hereby thank for the AMD developers' collaboration.
 
 ### Future Works
-
-There are other optimizations might improve the performance or reduce memory footprint:
-* Export the whole pipeline into a single ONNX model. Currently, there are multiple ONNX models (CLIP, VAE and U-Net etc). Each model uses separated thread pool and memory allocator. Combine them into one model could share thread pool and memory allocator. The end result is more efficient and less memory footprint.
-* For Stable Diffusion 2.1, we disable TensorRT flash attention kernel and use only memory efficient attention. It is possible to add flash attention in Windows to improve performance.
-* Reduce GPU memory footprint by actively deleting buffers for intermediate results.
-* Safety Checker Optimization
-* Leverage FP8 in latest GPU
+* Update demo to support inpainting, LoRA Weights and Control Net.
+* Support flash attention in Windows.
+* Integration with UI.
+* Optimization for H100 GPU.
+* Export the whole pipeline into a single ONNX model. This senario is mainly for mobile device.
