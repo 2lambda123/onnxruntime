@@ -255,6 +255,7 @@ def init_pipeline(pipeline_class, pipeline_info, engine_type, args, max_batch_si
             static_image_shape=not args.build_dynamic_shape,
             max_workspace_size=0,
             device_id=torch.cuda.current_device(),
+            timing_cache=timing_cache,
         )
     elif engine_type == EngineType.TRT:
         # Load TensorRT engines and pytorch modules
