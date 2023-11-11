@@ -41,7 +41,7 @@ cd onnxruntime
 Install nvidia-docker using [these instructions](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker).
 
 ```
-docker run --rm -it --gpus all -v $PWD:/workspace nvcr.io/nvidia/pytorch:23.07-py3 /bin/bash
+docker run --rm -it --gpus all -v $PWD:/workspace nvcr.io/nvidia/pytorch:23.10-py3 /bin/bash
 ```
 
 Optionally, you can update TensorRT from 8.6.1 to latest pre-release.
